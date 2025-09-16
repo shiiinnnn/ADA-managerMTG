@@ -15,12 +15,12 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div id="app" class="w-full max-w-4xl p-6 bg-white rounded-xl shadow-lg flex flex-col lg:flex-row gap-6">
-        <!-- Loader -->
+        <!-- ローダー -->
         <div id="loader" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-xl" style="display: none;">
             <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
         </div>
         
-        <!-- Left Panel: Topic Submission -->
+        <!-- 左パネル: 議題入力 -->
         <div class="lg:w-1/2 p-4 bg-gray-50 rounded-lg shadow-inner">
             <h1 class="text-xl lg:text-2xl font-bold text-gray-800 mb-4 text-center">議題候補の入力</h1>
             <div class="mb-3">
@@ -59,7 +59,7 @@ CS部からのフィードバック共有
             </div>
         </div>
 
-        <!-- Right Panel: Topic List and Owner Controls -->
+        <!-- 右パネル: 議題リストとオーナーコントロール -->
         <div class="lg:w-1/2 p-4 bg-gray-50 rounded-lg shadow-inner">
             <div class="flex items-center justify-between mb-4">
                 <h2 id="topicListTitle" class="text-xl lg:text-2xl font-bold text-gray-800">次回の議題候補</h2>
@@ -218,7 +218,8 @@ CS部からのフィードバック共有
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-
+                
+                // 認証ロジックを修正
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
