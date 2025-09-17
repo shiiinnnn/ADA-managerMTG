@@ -50,13 +50,6 @@ CS部からのフィードバック共有
 来月のイベント計画" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"></textarea>
             </div>
             <button id="submitBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 shadow-md">議題を提出</button>
-            <div id="userStatus" class="mt-4 text-center text-sm font-medium text-gray-600"></div>
-            <div id="userIdDisplay" class="mt-4 p-3 bg-white rounded-md border border-gray-200 text-sm break-all">
-                <span class="font-semibold text-gray-700">あなたのID:</span> <span id="userIdValue" class="text-blue-600">...</span>
-            </div>
-            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
-                <p><strong>重要:</strong> このアプリは複数人で共有できます。あなたのIDを他の人に教えて、議題を共有しましょう。</p>
-            </div>
         </div>
 
         <!-- 右パネル: 議題リストとオーナーコントロール -->
@@ -138,8 +131,6 @@ CS部からのフィードバック共有
         const ownerControls = document.getElementById('ownerControls');
         const clearTopicsBtn = document.getElementById('clearTopicsBtn');
         const copySelectedBtn = document.getElementById('copySelectedBtn');
-        const userIdDisplay = document.getElementById('userIdDisplay');
-        const userIdValue = document.getElementById('userIdValue');
         const userStatus = document.getElementById('userStatus');
         const toastContainer = document.getElementById('toast-container');
         const remindStatus = document.getElementById('remindStatus');
@@ -229,13 +220,10 @@ CS部からのフィードバック共有
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
-                        userIdValue.textContent = userId;
-                        userStatus.textContent = "接続済み";
                         setupRealtimeTopics();
                         hideLoader();
                     } else {
                         console.error("ユーザー認証に失敗しました。");
-                        userStatus.textContent = "接続に失敗しました";
                         hideLoader();
                     }
                 });
@@ -255,7 +243,6 @@ CS部からのフィードバック共有
                 }
             } catch (error) {
                 console.error("Firebaseの初期化に失敗しました:", error);
-                userStatus.textContent = "接続エラー";
                 hideLoader();
             }
         }
