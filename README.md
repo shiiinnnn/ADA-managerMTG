@@ -48,7 +48,7 @@
 CS部からのフィードバック共有
 来月のイベント計画" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"></textarea>
             </div>
-            <button id="submitBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 shadow-md">議題を提出</button>
+            <button id="submitBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 shadow-md" disabled>議題を提出</button>
         </div>
 
         <!-- 右パネル: 議題リストとオーナーコントロール -->
@@ -103,7 +103,7 @@ CS部からのフィードバック共有
         // Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Set Firebase debug log level
@@ -112,7 +112,6 @@ CS部からのフィードバック共有
         // Global variables for Firebase configuration
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // UI Elements
         const appContainer = document.getElementById('app');
@@ -208,16 +207,13 @@ CS部からのフィードバック共有
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                // 認証ロジックを修正
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // 匿名認証で必ずサインインする
+                await signInAnonymously(auth);
 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
+                        submitBtn.disabled = false;
                         setupRealtimeTopics();
                         hideLoader();
                     } else {
@@ -366,10 +362,6 @@ CS部からのフィードバック共有
         }
         
         async function addTopic() {
-            if (!userId) {
-                showToast("ユーザー認証が完了していません。しばらくお待ちください。", "error");
-                return;
-            }
             const meetingDate = meetingDateInput.value;
             const department = departmentSelect.value;
             const name = nameInput.value.trim();
