@@ -130,7 +130,6 @@ CS部からのフィードバック共有
         const ownerControls = document.getElementById('ownerControls');
         const clearTopicsBtn = document.getElementById('clearTopicsBtn');
         const copySelectedBtn = document.getElementById('copySelectedBtn');
-        const userStatus = document.getElementById('userStatus');
         const toastContainer = document.getElementById('toast-container');
         const remindStatus = document.getElementById('remindStatus');
         const passwordModal = document.getElementById('passwordModal');
