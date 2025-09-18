@@ -14,11 +14,6 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div id="app" class="w-full max-w-4xl p-6 bg-white rounded-xl shadow-lg flex flex-col lg:flex-row gap-6">
-        <!-- ローダー -->
-        <div id="loader" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-xl" style="display: none;">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-        
         <!-- 左パネル: 議題入力 -->
         <div class="lg:w-1/2 p-4 bg-gray-50 rounded-lg shadow-inner">
             <h1 class="text-xl lg:text-2xl font-bold text-gray-800 mb-4 text-center">議題候補の入力</h1>
@@ -48,7 +43,7 @@
 CS部からのフィードバック共有
 来月のイベント計画" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"></textarea>
             </div>
-            <button id="submitBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 shadow-md" disabled>議題を提出</button>
+            <button id="submitBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 shadow-md">議題を提出</button>
         </div>
 
         <!-- 右パネル: 議題リストとオーナーコントロール -->
@@ -100,22 +95,8 @@ CS部からのフィードバック共有
     </div>
 
     <script type="module">
-        // Firebase SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Set Firebase debug log level
-        setLogLevel('debug');
-
-        // Global variables for Firebase configuration
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-
         // UI Elements
         const appContainer = document.getElementById('app');
-        const loader = document.getElementById('loader');
         const meetingDateInput = document.getElementById('meetingDate');
         const topicInput = document.getElementById('topicInput');
         const nameInput = document.getElementById('nameInput');
@@ -137,23 +118,13 @@ CS部からのフィードバック共有
         const confirmPasswordBtn = document.getElementById('confirmPasswordBtn');
         const toggleArchiveBtn = document.getElementById('toggleArchiveBtn');
 
-        let db, auth;
-        let userId = null;
         let isOwner = false;
         let isArchiveView = false;
+        
+        const TOPICS_STORAGE_KEY = 'manager-mtg-topics';
 
         // Owner password
         const OWNER_PASSWORD = 'shinkuroS5203ADA';
-
-        function showLoader() {
-            loader.style.display = 'flex';
-            appContainer.classList.add('pointer-events-none');
-        }
-
-        function hideLoader() {
-            loader.style.display = 'none';
-            appContainer.classList.remove('pointer-events-none');
-        }
 
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -200,69 +171,17 @@ CS部からのフィードバック共有
             }, 3000);
         }
 
-        async function initializeFirebase() {
-            try {
-                showLoader();
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // 匿名認証で必ずサインインする
-                await signInAnonymously(auth);
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        submitBtn.disabled = false;
-                        setupRealtimeTopics();
-                        hideLoader();
-                    } else {
-                        console.error("ユーザー認証に失敗しました。");
-                        hideLoader();
-                    }
-                });
-
-                const reminderDocRef = doc(db, `artifacts/${appId}/public/data/reminders`, 'weekly-agenda-reminder');
-                const reminderDocSnap = await getDoc(reminderDocRef);
-                const lastRun = reminderDocSnap.exists() ? reminderDocSnap.data().lastRun.toDate() : null;
-
-                const now = new Date();
-                const currentDay = now.getDay();
-                const currentHour = now.getHours();
-
-                const isReminderTime = (currentDay === 1 && currentHour >= 22);
-                if (isReminderTime && (!lastRun || now.getTime() - lastRun.getTime() > 7 * 24 * 60 * 60 * 1000)) {
-                     remindStatus.textContent = "期限です！リマインダーが送信されました。";
-                     await setDoc(reminderDocRef, { lastRun: Timestamp.fromDate(now) });
-                }
-            } catch (error) {
-                console.error("Firebaseの初期化に失敗しました:", error);
-                hideLoader();
-            }
-        }
-
-        async function setupRealtimeTopics() {
-            if (!userId) {
-                console.error("ユーザーIDが利用できません。");
-                return;
-            }
-
-            const topicsColRef = collection(db, `artifacts/${appId}/public/data/topics`);
-            const q = query(topicsColRef);
-
-            onSnapshot(q, (snapshot) => {
-                const topics = [];
-                snapshot.forEach((doc) => {
-                    topics.push({ id: doc.id, ...doc.data() });
-                });
-                renderTopics(topics);
-            }, (error) => {
-                console.error("議題のリアルタイム取得に失敗しました:", error);
-                showToast("議題の取得中にエラーが発生しました。", "error");
-            });
+        function getTopics() {
+            const storedTopics = localStorage.getItem(TOPICS_STORAGE_KEY);
+            return storedTopics ? JSON.parse(storedTopics) : [];
         }
         
-        function renderTopics(topics) {
+        function saveTopics(topics) {
+            localStorage.setItem(TOPICS_STORAGE_KEY, JSON.stringify(topics));
+        }
+
+        function renderTopics() {
+            const topics = getTopics();
             topicList.innerHTML = '';
             noTopicsMsg.style.display = topics.length === 0 ? 'block' : 'none';
             
@@ -271,11 +190,7 @@ CS部からのフィードバック共有
                 topics.filter(t => t.meetingDate && new Date(t.meetingDate) < now) :
                 topics.filter(t => !t.meetingDate || new Date(t.meetingDate) >= now);
 
-            topicsToDisplay.sort((a, b) => {
-                const dateA = a.createdAt ? a.createdAt.toDate() : new Date();
-                const dateB = b.createdAt ? b.createdAt.toDate() : new Date();
-                return dateB - dateA;
-            });
+            topicsToDisplay.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
             topicsToDisplay.forEach(topic => {
                 const li = document.createElement('li');
@@ -288,7 +203,7 @@ CS部からのフィードバック共有
                     <p class="text-sm font-semibold text-gray-900">${topic.topic}</p>
                     <p class="text-xs text-gray-500 mt-1">
                         提出者: ${topic.department} / ${topic.name}
-                        (${topic.createdAt.toDate().toLocaleDateString('ja-JP')} ${topic.createdAt.toDate().toLocaleTimeString('ja-JP')})
+                        (${new Date(topic.createdAt).toLocaleDateString('ja-JP')} ${new Date(topic.createdAt).toLocaleTimeString('ja-JP')})
                     </p>
                     ${topic.meetingDate ? `<p class="text-xs text-gray-500 mt-1">会議日: ${topic.meetingDate}</p>` : ''}
                 `;
@@ -361,7 +276,7 @@ CS部からのフィードバック共有
             });
         }
         
-        async function addTopic() {
+        function addTopic() {
             const meetingDate = meetingDateInput.value;
             const department = departmentSelect.value;
             const name = nameInput.value.trim();
@@ -372,70 +287,43 @@ CS部からのフィードバック共有
                 return;
             }
 
-            showLoader();
-            try {
-                const topicsArray = topicsText.split('\n').filter(t => t.trim() !== '');
-                const topicsColRef = collection(db, `artifacts/${appId}/public/data/topics`);
-                
-                const batch = writeBatch(db);
-                topicsArray.forEach(topic => {
-                    const newDocRef = doc(topicsColRef);
-                    batch.set(newDocRef, {
-                        meetingDate: meetingDate,
-                        topic: topic.trim(),
-                        department: department,
-                        name: name,
-                        authorId: userId,
-                        createdAt: Timestamp.now(),
-                        status: 'unhandled' // Default status
-                    });
-                });
-                
-                await batch.commit();
-
-                showToast("議題を提出しました！", "success");
-
-            } catch (error) {
-                console.error("議題の追加に失敗しました:", error);
-                showToast("議題の提出中にエラーが発生しました。", "error");
-            } finally {
-                hideLoader();
-            }
+            const topicsArray = topicsText.split('\n').filter(t => t.trim() !== '');
+            const existingTopics = getTopics();
+            const newTopics = topicsArray.map(topic => ({
+                id: Date.now() + Math.random().toString(36).substr(2, 9),
+                meetingDate: meetingDate,
+                topic: topic.trim(),
+                department: department,
+                name: name,
+                createdAt: new Date().toISOString(),
+                status: 'unhandled'
+            }));
+            
+            saveTopics([...existingTopics, ...newTopics]);
+            renderTopics();
+            showToast("議題を提出しました！", "success");
         }
 
-        async function updateTopicStatus(topicId, status) {
+        function updateTopicStatus(topicId, status) {
             if (!isOwner) return;
-            showLoader();
-            try {
-                const topicRef = doc(db, `artifacts/${appId}/public/data/topics`, topicId);
-                await updateDoc(topicRef, { status: status, lastUpdated: Timestamp.now() });
+            const topics = getTopics();
+            const topicIndex = topics.findIndex(t => t.id === topicId);
+            if (topicIndex !== -1) {
+                topics[topicIndex].status = status;
+                saveTopics(topics);
+                renderTopics();
                 showToast("議題のステータスを更新しました。", "success");
-            } catch (error) {
-                console.error("議題ステータスの更新に失敗しました:", error);
-                showToast("議題ステータスの更新中にエラーが発生しました。", "error");
-            } finally {
-                hideLoader();
             }
         }
 
-        async function clearAllTopics() {
+        function clearAllTopics() {
             if (!isOwner) return;
-            showLoader();
-            try {
-                const topicsColRef = collection(db, `artifacts/${appId}/public/data/topics`);
-                const snapshot = await getDocs(topicsColRef);
-                const batch = writeBatch(db);
-                snapshot.docs.forEach((doc) => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-                showToast("すべての議題をクリアしました。", "success");
-            } catch (error) {
-                console.error("議題のクリアに失敗しました:", error);
-                showToast("議題のクリア中にエラーが発生しました。", "error");
-            } finally {
-                hideLoader();
-            }
+            const topics = getTopics().filter(t => {
+                return t.meetingDate && new Date(t.meetingDate) >= new Date();
+            });
+            saveTopics(topics);
+            renderTopics();
+            showToast("次回の議題候補をクリアしました。", "success");
         }
 
         function copySelectedTopics() {
@@ -474,7 +362,7 @@ CS部からのフィードバック共有
                 isOwner = false;
                 ownerControls.style.display = 'none';
                 toggleOwnerBtn.textContent = 'オーナーモード';
-                setupRealtimeTopics();
+                renderTopics();
                 showToast("参加者モードに切り替わりました。", "info");
             } else {
                 passwordModal.classList.remove('hidden');
@@ -493,7 +381,7 @@ CS部からのフィードバック共有
                 topicListSubtitle.textContent = 'オーナーが会議で取り扱うか選択します。';
                 toggleArchiveBtn.textContent = 'アーカイブを見る';
             }
-            setupRealtimeTopics();
+            renderTopics();
         }
 
         function handlePasswordConfirmation() {
@@ -502,7 +390,7 @@ CS部からのフィードバック共有
                 isOwner = true;
                 ownerControls.style.display = 'block';
                 toggleOwnerBtn.textContent = '参加者モード';
-                setupRealtimeTopics();
+                renderTopics();
                 showToast("オーナーモードに切り替わりました。", "success");
                 passwordModal.classList.add('hidden');
                 passwordInput.value = '';
@@ -536,9 +424,8 @@ CS部からのフィードバック共有
             passwordInput.value = '';
         });
 
-
         // Initial setup
-        window.onload = initializeFirebase;
+        window.onload = renderTopics;
     </script>
 </body>
 </html>
