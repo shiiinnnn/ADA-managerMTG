@@ -94,7 +94,7 @@ CS部からのフィードバック共有
         </div>
     </div>
 
-    <script type="module">
+    <script>
         // UI Elements
         const appContainer = document.getElementById('app');
         const meetingDateInput = document.getElementById('meetingDate');
